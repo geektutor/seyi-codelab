@@ -1,0 +1,670 @@
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#4F7DC9">
+  <meta charset="UTF-8">
+  <title>What Do the Logs Say? - A Gemini AI Codelab</title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
+  <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://storage.googleapis.com/claat-public/codelab-elements.css">
+  <style>
+    .success {
+      color: #1e8e3e;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <google-codelab-analytics gaid="UA-49880327-14" ga4id=""></google-codelab-analytics>
+  <google-codelab codelab-gaid=""
+                  codelab-ga4id=""
+                  id="what-do-the-logs-say"
+                  title="What Do the Logs Say? - A Gemini AI Codelab"
+                  environment="web"
+                  feedback-link="https://github.com/yourusername/your-repo/issues">
+    
+      <google-codelab-step label="Overview" duration="10">
+        <p>In this quirky codelab, you&#39;ll build a fun yet powerful application that uses Google Cloud Functions, Cloud Logging, and Gemini AI to analyze log data and turn it into human-friendly stories and insights. Instead of staring at cryptic log entries, you&#39;ll get AI-generated narratives about what&#39;s happening in your systems!</p>
+<h2 class="checklist" is-upgraded>What you&#39;ll learn</h2>
+<ul class="checklist">
+<li>How to deploy a Cloud Function with Google Cloud</li>
+<li>How to query and analyze logs with Google Cloud Logging</li>
+<li>How to use Gemini AI to generate insights from technical data</li>
+<li>How to build a tool that can &#34;chat&#34; with your logs</li>
+</ul>
+<h2 is-upgraded>Prerequisites</h2>
+<ul>
+<li>Google Cloud account</li>
+<li>Basic command line familiarity</li>
+<li>Python knowledge</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Environment Setup" duration="5">
+        <p>First, let&#39;s set up our Google Cloud environment.</p>
+<h2 is-upgraded>Creating a project and enabling APIs</h2>
+<ol type="1">
+<li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+<li>Create a new project or select an existing one</li>
+<li>Open Cloud Shell</li>
+<li>Enable the required APIs by running the following commands:</li>
+</ol>
+<pre><code language="language-bash" class="language-bash"># Enable required APIs
+gcloud services enable cloudfunctions.googleapis.com
+gcloud services enable logging.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable aiplatform.googleapis.com
+</code></pre>
+<h2 is-upgraded>Get a Gemini API key</h2>
+<ol type="1">
+<li>Go to <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></li>
+<li>Create an API key</li>
+<li>Copy it somewhere safe for later use</li>
+</ol>
+<h2 is-upgraded>Create project directory</h2>
+<p>Let&#39;s create a directory for our project:</p>
+<pre><code language="language-bash" class="language-bash">mkdir what-logs-say
+cd what-logs-say
+</code></pre>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Setting Up Dependencies" duration="3">
+        <p>Let&#39;s create our <code>requirements.txt</code> file to specify our dependencies:</p>
+<p>Paste this in your terminal:</p>
+<pre><code language="language-bash" class="language-bash">cat &gt; requirements.txt &lt;&lt; &#39;EOL&#39;
+google-cloud-logging&gt;=3.1.0
+requests&gt;=2.28.0
+functions-framework&gt;=3.0.0
+EOL
+</code></pre>
+<p>This file specifies that our project requires:</p>
+<ul>
+<li>The Google Cloud Logging client library</li>
+<li>The Requests library for making HTTP calls</li>
+<li>The Functions Framework for creating HTTP functions</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Basic Function Structure" duration="5">
+        <p>Now, let&#39;s create our main Python file for the Cloud Function. We&#39;ll start with a basic structure and imports:</p>
+<pre><code language="language-python" class="language-python">import os
+import json
+from datetime import datetime, timezone, timedelta
+
+import functions_framework
+from google.cloud import logging
+import requests
+
+@functions_framework.http
+def logs_story(request):
+    &#34;&#34;&#34;HTTP Cloud Function that returns a Gemini-generated story based on logs.&#34;&#34;&#34;
+    # We&#39;ll fill this in step by step
+    return (&#34;Hello World!&#34;, 200)
+</code></pre>
+<p>This code sets up:</p>
+<ul>
+<li>The necessary imports for working with dates, HTTP functions, logging, and HTTP requests</li>
+<li>A basic function defined with <code>@functions_framework.http</code> that will respond to HTTP requests</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Retrieving Logs from Cloud Logging" duration="8">
+        <p>Now let&#39;s expand our function to retrieve logs from Google Cloud:</p>
+<pre><code language="language-python" class="language-python"># Add to the top of your file - sample logs to use if no real logs found
+DEFAULT_LOGS = {
+    &#34;security&#34;: &#34;&#34;&#34;
+2023-04-01 09:15:27.123 ERROR Failed login attempt from IP 198.51.100.123: Invalid credentials
+2023-04-01 09:15:29.456 CRITICAL Multiple failed login attempts detected: Possible brute force attack
+2023-04-01 09:16:00.789 ERROR Unauthorized access attempt to /admin endpoint
+&#34;&#34;&#34;,
+    &#34;dev&#34;: &#34;&#34;&#34;
+2023-04-01 10:15:27.123 ERROR Uncaught TypeError: Cannot read property &#39;data&#39; of undefined at UserService.getUser
+2023-04-01 10:15:29.456 ERROR API rate limit exceeded for endpoint /api/users
+2023-04-01 10:16:00.789 CRITICAL Application crashed: Out of memory exception in worker thread
+&#34;&#34;&#34;,
+    &#34;database&#34;: &#34;&#34;&#34;
+2023-04-01 11:15:27.123 ERROR Failed to connect to database: Connection refused
+2023-04-01 11:15:29.456 CRITICAL Database deadlock detected in transaction #45982
+2023-04-01 11:16:00.789 ERROR Query performance degradation: Full table scan on users_table
+&#34;&#34;&#34;
+}
+
+@functions_framework.http
+def logs_story(request):
+    &#34;&#34;&#34;HTTP Cloud Function that returns a Gemini-generated story based on logs.&#34;&#34;&#34;
+    # Parse request parameters
+    request_json = request.get_json(silent=True)
+    request_args = request.args
+    
+    # Get parameters with defaults
+    if request_json and &#39;timeframe&#39; in request_json:
+        timeframe = int(request_json[&#39;timeframe&#39;])
+    elif request_args and &#39;timeframe&#39; in request_args:
+        timeframe = int(request_args[&#39;timeframe&#39;])
+    else:
+        timeframe = 1  # Default to 1 hour
+    
+    # Initialize logging client
+    logging_client = logging.Client()
+        
+    # Query logs from the past X hours with severity ERROR or higher
+    now = datetime.now(timezone.utc)
+    time_ago = now - timedelta(hours=timeframe)
+    time_iso = time_ago.isoformat()  # e.g. &#34;2023-04-01T08:30:00+00:00&#34;
+    
+    log_filter = f&#39;severity &gt;= ERROR AND timestamp &gt;= &#34;{time_iso}&#34;&#39;
+    
+    try:
+        entries = logging_client.list_entries(filter_=log_filter)
+        
+        logs_text = &#34;&#34;
+        entry_count = 0
+        
+        for entry in entries:
+            entry_count += 1
+            # Format the log entry properly
+            if hasattr(entry, &#34;timestamp&#34;):
+                timestamp = entry.timestamp.isoformat()
+            else:
+                timestamp = &#34;Unknown time&#34;
+                
+            severity = entry.severity if hasattr(entry, &#34;severity&#34;) else &#34;ERROR&#34;
+            
+            if hasattr(entry, &#34;payload&#34;):
+                message = str(entry.payload)
+            else:
+                message = str(entry)
+            
+            logs_text += f&#34;{timestamp} {severity} {message}\n&#34;
+            
+            # Limit to reasonable number of entries to avoid excessive API costs
+            if entry_count &gt;= 50:
+                logs_text += &#34;... (additional logs truncated) ...\n&#34;
+                break
+                
+        # If no logs were collected, use the default sample logs
+        if not logs_text.strip():
+            logs_text = DEFAULT_LOGS.get(&#34;dev&#34;, DEFAULT_LOGS[&#34;dev&#34;])
+            logs_text = logs_text.strip()
+        
+        return (f&#34;Found {entry_count} log entries: \n\n{logs_text}&#34;, 200)
+    
+    except Exception as e:
+        return (f&#34;Error querying logs: {str(e)}&#34;, 500)
+</code></pre>
+<p>This code:</p>
+<ul>
+<li>Gets a time period parameter from the request</li>
+<li>Sets up a Cloud Logging client</li>
+<li>Creates a filter to get logs from the past X hours with severity ERROR or higher</li>
+<li>Loops through log entries, formatting them nicely</li>
+<li>Falls back to sample logs if none are found</li>
+<li>Returns the formatted logs as a response</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Adding Analysis Modes" duration="7">
+        <p>Now let&#39;s add different analysis modes to our function:</p>
+<pre><code language="language-python" class="language-python"># Add to the top of your file
+MODE_PROMPTS = {
+    &#34;security&#34;: &#34;You are a security analyst in a SOC (Security Operations Center). Review these logs from a security perspective. First provide a clear SUMMARY of what happened. Then under ATTACK PATTERNS, identify and explain potential security threats, unauthorized access attempts, suspicious activities, and attack vectors. Finally, under IMPACT ASSESSMENT, evaluate the potential impact and provide specific, actionable recommendations to improve security posture.&#34;,
+    
+    &#34;dev&#34;: &#34;You are a developer analyzing application logs. Review these logs from an application development perspective. First provide a clear SUMMARY of what happened. Then under ERROR ANALYSIS, identify software bugs, performance issues, error patterns, or application failures. Finally, under IMPACT ASSESSMENT, evaluate the impact on the application and provide specific, actionable recommendations to improve code quality and application reliability.&#34;,
+    
+    &#34;database&#34;: &#34;You are a database administrator. Review these logs from a database management perspective. First provide a clear SUMMARY of what happened. Then under PERFORMANCE ANALYSIS, identify database connectivity issues, query problems, or performance bottlenecks. Finally, under IMPACT ASSESSMENT, evaluate the impact on database operations and provide specific, actionable recommendations to improve database health and performance.&#34;
+}
+
+@functions_framework.http
+def logs_story(request):
+    &#34;&#34;&#34;HTTP Cloud Function that returns a Gemini-generated story based on logs.&#34;&#34;&#34;
+    # Parse request parameters
+    request_json = request.get_json(silent=True)
+    request_args = request.args
+    
+    # Get parameters with defaults
+    if request_json and &#39;timeframe&#39; in request_json:
+        timeframe = int(request_json[&#39;timeframe&#39;])
+    elif request_args and &#39;timeframe&#39; in request_args:
+        timeframe = int(request_args[&#39;timeframe&#39;])
+    else:
+        timeframe = 1  # Default to 1 hour
+        
+    if request_json and &#39;mode&#39; in request_json:
+        mode = request_json[&#39;mode&#39;].lower()
+    elif request_args and &#39;mode&#39; in request_args:
+        mode = request_args[&#39;mode&#39;].lower()
+    else:
+        mode = &#34;dev&#34;  # Default to dev mode
+        
+    # Validate mode
+    if mode not in MODE_PROMPTS:
+        return (f&#34;Error: Invalid mode. Available modes: {&#39;, &#39;.join(MODE_PROMPTS.keys())}&#34;, 400)
+            
+    # Get logs (code from previous step)
+    # ...
+    
+    # Choose prompt based on mode
+    base_prompt = f&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:\n\n{logs_text}\n\n&#34;
+    mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS[&#34;dev&#34;])
+    
+    prompt = base_prompt + mode_prompt
+    
+    # We&#39;ll add Gemini API call in next step
+    return (f&#34;Mode: {mode}\nTimeframe: {timeframe} hour(s)\n\nLogs:\n{logs_text}\n\nPrompt for Gemini:\n{prompt}&#34;, 200)
+</code></pre>
+<p>This addition:</p>
+<ul>
+<li>Creates prompts for different analysis modes (security, dev, database)</li>
+<li>Gets the mode parameter from the request</li>
+<li>Validates the mode parameter</li>
+<li>Creates a customized prompt based on the selected mode</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Calling the Gemini API" duration="7">
+        <p>Now let&#39;s make the Gemini API call to analyze the logs:</p>
+<pre><code language="language-python" class="language-python">@functions_framework.http
+def logs_story(request):
+    # Previous code for getting parameters and logs
+    # ...
+    
+    # Compose the prompt for Gemini based on mode
+    base_prompt = f&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:\n\n{logs_text}\n\n&#34;
+    mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS[&#34;dev&#34;])
+    
+    prompt = base_prompt + mode_prompt
+    
+    # Call the Gemini API
+    api_key = os.environ.get(&#34;GEMINI_API_KEY&#34;)
+    if not api_key:
+        return (&#34;Error: Gemini API key not set in environment variable GEMINI_API_KEY&#34;, 500)
+    
+    url = f&#34;https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}&#34;
+    headers = {&#34;Content-Type&#34;: &#34;application/json&#34;}
+    payload = {
+        &#34;contents&#34;: [
+            {
+                &#34;parts&#34;: [
+                    {&#34;text&#34;: prompt}
+                ]
+            }
+        ]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code != 200:
+            return (f&#34;Gemini API request failed with status {response.status_code}: {response.text}&#34;, 500)
+        
+        result = response.json()
+        story_text = result[&#34;candidates&#34;][0][&#34;content&#34;][&#34;parts&#34;][0][&#34;text&#34;]
+        
+        # Enhance the output with metadata
+        output = f&#34;LOG ANALYSIS: {mode.upper()} MODE\n&#34;
+        output += f&#34;Time period: Past {timeframe} hour(s)\n&#34;
+        output += f&#34;Logs analyzed: {entry_count} entries\n&#34;
+        output += &#34;-&#34; * 50 + &#34;\n\n&#34;
+        output += story_text
+        
+        return (output, 200, {&#34;Content-Type&#34;: &#34;text/plain&#34;})
+    
+    except Exception as e:
+        return (f&#34;Error processing request: {str(e)}&#34;, 500)
+</code></pre>
+<p>This code:</p>
+<ul>
+<li>Takes the prompt we created</li>
+<li>Gets the Gemini API key from an environment variable</li>
+<li>Sets up the API request with the proper format</li>
+<li>Calls the Gemini API</li>
+<li>Extracts the response text</li>
+<li>Formats it nicely with metadata</li>
+<li>Returns the formatted response</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Adding Chat Functionality" duration="7">
+        <p>Finally, let&#39;s add the ability to ask specific questions about the logs:</p>
+<pre><code language="language-python" class="language-python">@functions_framework.http
+def logs_story(request):
+    # Previous code for getting parameters and logs
+    # ...
+    
+    # Check for chat parameter (specific question about logs)
+    if request_json and &#39;chat&#39; in request_json:
+        chat_query = request_json[&#39;chat&#39;]
+    elif request_args and &#39;chat&#39; in request_args:
+        chat_query = request_args[&#39;chat&#39;]
+    else:
+        chat_query = None  # No specific question asked
+    
+    # Compose the prompt for Gemini based on whether this is a chat query
+    if chat_query:
+        # If a specific question was asked, use a chat prompt
+        prompt = f&#34;&#34;&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:
+
+{logs_text}
+
+A user has asked the following question about these logs:
+{chat_query}
+
+Please answer their question directly and specifically based on the log data. Provide as much relevant detail as possible from the logs to support your answer.&#34;&#34;&#34;
+    else:
+        # Otherwise use the standard analysis prompt
+        base_prompt = f&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:\n\n{logs_text}\n\n&#34;
+        mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS[&#34;dev&#34;])
+        
+        prompt = base_prompt + mode_prompt
+    
+    # Gemini API call (same as before)
+    # ...
+    
+    # Enhance the output with metadata
+    if chat_query:
+        output = f&#34;LOG ANALYSIS CHAT: {mode.upper()} MODE\n&#34;
+        output += f&#34;Time period: Past {timeframe} hour(s)\n&#34;
+        output += f&#34;Logs analyzed: {entry_count} entries\n&#34;
+        output += f&#34;Question: {chat_query}\n&#34;
+        output += &#34;-&#34; * 50 + &#34;\n\n&#34;
+        output += story_text
+    else:
+        output = f&#34;LOG ANALYSIS: {mode.upper()} MODE\n&#34;
+        output += f&#34;Time period: Past {timeframe} hour(s)\n&#34;
+        output += f&#34;Logs analyzed: {entry_count} entries\n&#34;
+        output += &#34;-&#34; * 50 + &#34;\n\n&#34;
+        output += story_text
+    
+    return (output, 200, {&#34;Content-Type&#34;: &#34;text/plain&#34;})
+</code></pre>
+<p>This addition:</p>
+<ul>
+<li>Checks if a chat question was provided in the request</li>
+<li>Creates a different prompt if it&#39;s a chat question</li>
+<li>Formats the output differently for chat versus standard analysis</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Creating a Log Generator Script" duration="7">
+        <p>Let&#39;s create a simple script to generate realistic-looking logs for testing:</p>
+<pre><code language="language-python" class="language-python">#!/usr/bin/env python3
+
+import argparse
+import time
+import random
+from datetime import datetime, timedelta, timezone
+from google.cloud import logging
+
+def create_hacking_logs(count=100):
+    &#34;&#34;&#34;Generate realistic logs simulating external hacking attempt that eventually succeeds.&#34;&#34;&#34;
+    client = logging.Client()
+    logger = client.logger(&#34;security-logs&#34;)
+    
+    # Realistic IP addresses for attackers
+    attacker_ips = [
+        &#34;185.220.102.8&#34;,   # Known TOR exit node
+        &#34;103.28.247.135&#34;,  # Suspicious Asian IP
+        &#34;45.77.106.251&#34;,   # VPS provider
+        &#34;198.98.51.60&#34;,    # Another suspicious IP
+        &#34;192.158.29.74&#34;    # More suspicious IP
+    ]
+    
+    # Different stages of the attack
+    log_entries = []
+    current_time = datetime.now(timezone.utc)
+    
+    # Stage 1: Reconnaissance
+    for i in range(20):
+        log_entries.append({
+            &#34;timestamp&#34;: current_time - timedelta(minutes=random.randint(55, 60)),
+            &#34;severity&#34;: &#34;WARNING&#34;,
+            &#34;message&#34;: f&#34;Unusual port scan detected from {random.choice(attacker_ips)}, targeting ports 22, 80, 443, 3306&#34;
+        })
+    
+    # Stage 2: Initial access attempts
+    for i in range(30):
+        log_entries.append({
+            &#34;timestamp&#34;: current_time - timedelta(minutes=random.randint(40, 50)),
+            &#34;severity&#34;: &#34;ERROR&#34;,
+            &#34;message&#34;: f&#34;Failed login attempt from IP {attacker_ips[0]}: Invalid credentials for user admin&#34;
+        })
+    
+    # Stage 3: Successful breach
+    log_entries.append({
+        &#34;timestamp&#34;: current_time - timedelta(minutes=35),
+        &#34;severity&#34;: &#34;CRITICAL&#34;,
+        &#34;message&#34;: f&#34;Multiple failed login attempts detected from {attacker_ips[0]}: Possible brute force attack&#34;
+    })
+    
+    log_entries.append({
+        &#34;timestamp&#34;: current_time - timedelta(minutes=30),
+        &#34;severity&#34;: &#34;ERROR&#34;,
+        &#34;message&#34;: f&#34;Successful login from unusual location: IP {attacker_ips[0]}, user: admin&#34;
+    })
+    
+    # Stage 4: Lateral movement
+    for i in range(15):
+        log_entries.append({
+            &#34;timestamp&#34;: current_time - timedelta(minutes=random.randint(20, 28)),
+            &#34;severity&#34;: &#34;ERROR&#34;,
+            &#34;message&#34;: f&#34;Suspicious command execution: &#39;cat /etc/passwd&#39; from user admin, IP {attacker_ips[0]}&#34;
+        })
+    
+    # Stage 5: Data exfiltration
+    log_entries.append({
+        &#34;timestamp&#34;: current_time - timedelta(minutes=15),
+        &#34;severity&#34;: &#34;CRITICAL&#34;, 
+        &#34;message&#34;: f&#34;Unusual outbound traffic volume (450MB) to IP {attacker_ips[0]}&#34;
+    })
+    
+    log_entries.append({
+        &#34;timestamp&#34;: current_time - timedelta(minutes=10),
+        &#34;severity&#34;: &#34;CRITICAL&#34;,
+        &#34;message&#34;: f&#34;Possible data exfiltration: Database dump command executed by user admin&#34;
+    })
+    
+    # Stage 6: Covering tracks
+    log_entries.append({
+        &#34;timestamp&#34;: current_time - timedelta(minutes=5),
+        &#34;severity&#34;: &#34;ERROR&#34;,
+        &#34;message&#34;: f&#34;System logs cleared by user admin from IP {attacker_ips[0]}&#34;
+    })
+    
+    # Sort logs by timestamp
+    log_entries.sort(key=lambda x: x[&#34;timestamp&#34;])
+    
+    # Generate the logs
+    for i, entry in enumerate(log_entries):
+        if i &gt;= count:
+            break
+            
+        # Create proper structured log
+        log_struct = {
+            &#34;timestamp&#34;: entry[&#34;timestamp&#34;].isoformat(),
+            &#34;severity&#34;: entry[&#34;severity&#34;],
+            &#34;message&#34;: entry[&#34;message&#34;],
+            &#34;sourceIP&#34;: [ip for ip in attacker_ips if ip in entry[&#34;message&#34;]][0] if any(ip in entry[&#34;message&#34;] for ip in attacker_ips) else None,
+            &#34;eventType&#34;: &#34;SECURITY_ALERT&#34;,
+            &#34;threatLevel&#34;: &#34;HIGH&#34; if entry[&#34;severity&#34;] == &#34;CRITICAL&#34; else &#34;MEDIUM&#34;
+        }
+        
+        logger.log_struct(log_struct, severity=entry[&#34;severity&#34;])
+        print(f&#34;Created log: {entry[&#39;message&#39;]}&#34;)
+        time.sleep(0.5)  # Delay to ensure different timestamps
+    
+    print(f&#34;Created {min(count, len(log_entries))} hacking logs in project&#34;)
+    print(&#34;Wait a minute or two for logs to be available in Cloud Logging&#34;)
+
+if __name__ == &#34;__main__&#34;:
+    parser = argparse.ArgumentParser(description=&#34;Generate enhanced security logs&#34;)
+    parser.add_argument(&#34;type&#34;, choices=[&#34;hacking&#34;], help=&#34;Type of attack scenario to generate&#34;)
+    parser.add_argument(&#34;--count&#34;, type=int, default=100, help=&#34;Number of logs to generate&#34;)
+    
+    args = parser.parse_args()
+    
+    if args.type == &#34;hacking&#34;:
+        create_hacking_logs(args.count)
+</code></pre>
+<p>Save this as <code>generate_logs.py</code> in your project directory.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Setting Up Service Account Permissions" duration="5">
+        <p>To ensure your function can deploy correctly, set up a service account with the right permissions:</p>
+<pre><code language="language-bash" class="language-bash"># Get your project ID and project number
+PROJECT_ID=$(gcloud config get-value project)
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format=&#34;value(projectNumber)&#34;)
+
+# Create a custom service account
+SERVICE_ACCOUNT_NAME=&#34;cf-builder&#34;
+SERVICE_ACCOUNT_EMAIL=&#34;$SERVICE_ACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com&#34;
+
+# Create the service account
+gcloud iam service-accounts create $SERVICE_ACCOUNT_NAME \
+  --display-name &#34;Cloud Functions Build Service Account&#34;
+
+# Assign necessary roles
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=&#34;serviceAccount:$SERVICE_ACCOUNT_EMAIL&#34; \
+  --role=&#34;roles/cloudbuild.builds.builder&#34;
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=&#34;serviceAccount:$SERVICE_ACCOUNT_EMAIL&#34; \
+  --role=&#34;roles/artifactregistry.writer&#34;
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=&#34;serviceAccount:$SERVICE_ACCOUNT_EMAIL&#34; \
+  --role=&#34;roles/logging.logWriter&#34;
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member=&#34;serviceAccount:$SERVICE_ACCOUNT_EMAIL&#34; \
+  --role=&#34;roles/cloudfunctions.developer&#34;
+</code></pre>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Deploying the Cloud Function" duration="5">
+        <p>Now let&#39;s deploy our function:</p>
+<pre><code language="language-bash" class="language-bash">gcloud functions deploy what-logs-say \
+  --runtime python310 \
+  --trigger-http \
+  --allow-unauthenticated \
+  --entry-point logs_story \
+  --set-env-vars GEMINI_API_KEY=YOUR_API_KEY \
+  --service-account $SERVICE_ACCOUNT_EMAIL
+</code></pre>
+<p>Replace <code>YOUR_API_KEY</code> with the Gemini API key you obtained earlier.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Testing the Application" duration="8">
+        <p>Let&#39;s create some sample logs to test with:</p>
+<pre><code language="language-bash" class="language-bash"># Make the log generator executable
+chmod +x generate_logs.py
+
+# Generate hacking scenario logs
+python generate_logs.py hacking --count 50
+
+# Wait for logs to propagate
+echo &#34;Waiting for logs to be available...&#34;
+sleep 120
+</code></pre>
+<p>Now, let&#39;s use our function to analyze the logs:</p>
+<pre><code language="language-bash" class="language-bash"># Get the function URL
+FUNCTION_URL=$(gcloud functions describe what-logs-say --format=&#34;value(httpsTrigger.url)&#34;)
+echo &#34;Function URL: $FUNCTION_URL&#34;
+
+# Test standard security analysis
+echo &#34;Testing security analysis mode...&#34;
+curl &#34;$FUNCTION_URL?mode=security&amp;timeframe=2&#34;
+</code></pre>
+<p>You should see a structured analysis of the security logs with:</p>
+<ul>
+<li>A SUMMARY of what happened</li>
+<li>ATTACK PATTERNS identified</li>
+<li>IMPACT ASSESSMENT with recommendations</li>
+</ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Chatting with Your Logs" duration="5">
+        <p>Now, let&#39;s try asking specific questions about the logs:</p>
+<pre><code language="language-bash" class="language-bash"># Ask about attack IPs
+echo &#34;Asking about attack IPs...&#34;
+curl &#34;$FUNCTION_URL?mode=security&amp;timeframe=2&amp;chat=What%20IP%20addresses%20were%20involved%20in%20the%20attack%3F&#34;
+
+# Ask about data exfiltration
+echo &#34;Asking about data exfiltration...&#34;
+curl &#34;$FUNCTION_URL?mode=security&amp;timeframe=2&amp;chat=Was%20there%20evidence%20of%20data%20exfiltration%3F&#34;
+
+# Ask about attacker methods
+echo &#34;Asking about attack methods...&#34;
+curl &#34;$FUNCTION_URL?mode=security&amp;timeframe=2&amp;chat=What%20methods%20did%20the%20attacker%20use%20to%20gain%20access%3F&#34;
+</code></pre>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Conclusion and Next Steps" duration="3">
+        <p>Congratulations! You&#39;ve built a powerful log analysis tool using Google Cloud Functions and Gemini AI. You&#39;ve learned:</p>
+<ol type="1">
+<li>How to deploy a serverless function on Google Cloud</li>
+<li>How to query and analyze logs from Google Cloud Logging</li>
+<li>How to use Gemini AI to transform technical data into human-friendly insights</li>
+<li>How to create a &#34;chat&#34; interface for your logs</li>
+</ol>
+<h2 is-upgraded>Bonus challenges</h2>
+<p>If you&#39;ve got extra time, try these enhancements:</p>
+<ol type="1">
+<li><strong>Add a web UI</strong>: Create a simple HTML page that calls your function</li>
+<li><strong>Add custom log patterns</strong>: Modify the log generator to create different scenarios</li>
+<li><strong>Schedule regular analyses</strong>: Set up a Cloud Scheduler job to analyze logs regularly</li>
+<li><strong>Implement alerting</strong>: Send high-priority findings to a messaging system</li>
+</ol>
+<h2 is-upgraded>Cleanup</h2>
+<p>To avoid incurring charges, clean up your resources:</p>
+<pre><code language="language-bash" class="language-bash"># Delete the function
+gcloud functions delete what-logs-say
+
+# Or keep it and enjoy analyzing your logs!
+</code></pre>
+<p>Happy log analyzing! 🚀</p>
+
+
+      </google-codelab-step>
+    
+  </google-codelab>
+
+  <script src="https://storage.googleapis.com/claat-public/native-shim.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/custom-elements.min.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/prettify.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/codelab-elements.js"></script>
+  <script src="//support.google.com/inapp/api.js"></script>
+
+</body>
+</html>

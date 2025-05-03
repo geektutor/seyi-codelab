@@ -1,0 +1,28 @@
+{
+  "environment": "web",
+  "format": "html",
+  "prefix": "https://storage.googleapis.com",
+  "mainga": "UA-49880327-14",
+  "updated": "2025-05-02T16:55:44+01:00",
+  "id": "what-do-the-logs-say",
+  "duration": 85,
+  "title": "What Do the Logs Say? - A Gemini AI Codelab",
+  "authors": "Your Name",
+  "summary": "What Do the Logs Say? - A Gemini AI Codelab",
+  "source": "/home/tester/Downloads/codelab-md.md",
+  "theme": "",
+  "status": [
+    "published"
+  ],
+  "category": [
+    "cloud"
+  ],
+  "tags": [
+    "cloud-functions",
+    "gemini",
+    "generative-ai",
+    "python"
+  ],
+  "feedback": "https://github.com/yourusername/your-repo/issues",
+  "url": "what-do-the-logs-say"
+}
