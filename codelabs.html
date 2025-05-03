@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Links with QR Codes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            width: 30%;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h2 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+        .card img {
+            width: 180px;
+            height: 180px;
+            margin: 15px 0;
+        }
+        .card a {
+            display: block;
+            text-decoration: none;
+            font-weight: bold;
+            color: #0066cc;
+            word-wrap: break-word;
+            margin-top: 15px;
+        }
+        .card a:hover {
+            text-decoration: underline;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            .card {
+                width: 80%;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Project Codelabs</h1>
+    </header>
+    
+    <div class="container">
+        <!-- YouTube Summarizer -->
+        <div class="card">
+            <h2><b>Build a YouTube Summarizer</b></h2>
+            <div id="qrcode1"></div>
+            <a href="https://codelabs.developers.google.com/devsite/codelabs/build-youtube-summarizer#1" target="_blank">
+                https://codelabs.developers.google.com/devsite/codelabs/build-youtube-summarizer#1
+            </a>
+        </div>
+
+        <!-- Log Summarizer -->
+        <div class="card">
+            <h2><b>Build a Log Summarizer</b></h2>
+            <div id="qrcode2"></div>
+            <a href="https://tinyurl.com/seyi-codelab" target="_blank">
+                https://tinyurl.com/seyi-codelab
+            </a>
+        </div>
+
+        <!-- Travel Agent with SDK -->
+        <div class="card">
+            <h2><b>Build a Travel Agent with SDK</b></h2>
+            <div id="qrcode3"></div>
+            <a href="https://shorturl.at/GSrBo" target="_blank">
+                https://shorturl.at/GSrBo
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        Created for Project Managers and Developers - 2025
+    </footer>
+
+    <script>
+        // Generate QR codes when the page loads
+        window.onload = function() {
+            // YouTube Summarizer QR Code
+            new QRCode(document.getElementById("qrcode1"), {
+                text: "https://codelabs.developers.google.com/devsite/codelabs/build-youtube-summarizer#1",
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Log Summarizer QR Code
+            new QRCode(document.getElementById("qrcode2"), {
+                text: "https://tinyurl.com/seyi-codelab",
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Travel Agent with SDK QR Code
+            new QRCode(document.getElementById("qrcode3"), {
+                text: "https://shorturl.at/GSrBo",
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        };
+    </script>
+</body>
+</html>
