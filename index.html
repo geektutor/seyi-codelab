@@ -98,7 +98,8 @@ EOL
       </google-codelab-step>
     
       <google-codelab-step label="Basic Function Structure" duration="5">
-        <p>Now, let&#39;s create our main Python file for the Cloud Function. We&#39;ll start with a basic structure and imports:</p>
+        <p>These are for reference alone - You are not performing action</p>
+<p>Now, let&#39;s create our main Python file for the Cloud Function. We&#39;ll start with a basic structure and imports:</p>
 <pre><code language="language-python" class="language-python">import os
 import json
 from datetime import datetime, timezone, timedelta
@@ -123,7 +124,8 @@ def logs_story(request):
       </google-codelab-step>
     
       <google-codelab-step label="Retrieving Logs from Cloud Logging" duration="8">
-        <p>Now let&#39;s expand our function to retrieve logs from Google Cloud:</p>
+        <p>These are for reference alone - You are not performing action</p>
+<p>Now let&#39;s expand our function to retrieve logs from Google Cloud:</p>
 <pre><code language="language-python" class="language-python"># Add to the top of your file - sample logs to use if no real logs found
 DEFAULT_LOGS = {
     &#34;security&#34;: &#34;&#34;&#34;
@@ -220,7 +222,8 @@ def logs_story(request):
       </google-codelab-step>
     
       <google-codelab-step label="Adding Analysis Modes" duration="7">
-        <p>Now let&#39;s add different analysis modes to our function:</p>
+        <p>These are for reference alone - You are not performing action</p>
+<p>Now let&#39;s add different analysis modes to our function:</p>
 <pre><code language="language-python" class="language-python"># Add to the top of your file
 MODE_PROMPTS = {
     &#34;security&#34;: &#34;You are a security analyst in a SOC (Security Operations Center). Review these logs from a security perspective. First provide a clear SUMMARY of what happened. Then under ATTACK PATTERNS, identify and explain potential security threats, unauthorized access attempts, suspicious activities, and attack vectors. Finally, under IMPACT ASSESSMENT, evaluate the potential impact and provide specific, actionable recommendations to improve security posture.&#34;,
@@ -280,7 +283,8 @@ def logs_story(request):
       </google-codelab-step>
     
       <google-codelab-step label="Calling the Gemini API" duration="7">
-        <p>Now let&#39;s make the Gemini API call to analyze the logs:</p>
+        <p>These are for reference alone - You are not performing action</p>
+<p>Now let&#39;s make the Gemini API call to analyze the logs:</p>
 <pre><code language="language-python" class="language-python">@functions_framework.http
 def logs_story(request):
     # Previous code for getting parameters and logs
@@ -344,7 +348,8 @@ def logs_story(request):
       </google-codelab-step>
     
       <google-codelab-step label="Adding Chat Functionality" duration="7">
-        <p>Finally, let&#39;s add the ability to ask specific questions about the logs:</p>
+        <p>These are for reference alone - You are not performing action</p>
+<p>Finally, let&#39;s add the ability to ask specific questions about the logs:</p>
 <pre><code language="language-python" class="language-python">@functions_framework.http
 def logs_story(request):
     # Previous code for getting parameters and logs
@@ -402,6 +407,212 @@ Please answer their question directly and specifically based on the log data. Pr
 <li>Creates a different prompt if it&#39;s a chat question</li>
 <li>Formats the output differently for chat versus standard analysis</li>
 </ul>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Full Code Reference" duration="0">
+        <p>Now open your main.py</p>
+<pre><code language="language-bash" class="language-bash">nano main.py
+</code></pre>
+<p>Copy this code and Past in main.py</p>
+<p>Here&#39;s the complete code for <code>main.py</code> that you should use for the deployment:</p>
+<pre><code language="language-python" class="language-python">import os
+import json
+from datetime import datetime, timezone, timedelta
+
+import functions_framework
+from google.cloud import logging
+import requests
+
+# Sample default logs (used if no logs are found)
+DEFAULT_LOGS = {
+    &#34;security&#34;: &#34;&#34;&#34;
+2023-04-01 09:15:27.123 ERROR Failed login attempt from IP 198.51.100.123: Invalid credentials
+2023-04-01 09:15:29.456 CRITICAL Multiple failed login attempts detected: Possible brute force attack
+2023-04-01 09:16:00.789 ERROR Unauthorized access attempt to /admin endpoint
+&#34;&#34;&#34;,
+    &#34;dev&#34;: &#34;&#34;&#34;
+2023-04-01 10:15:27.123 ERROR Uncaught TypeError: Cannot read property &#39;data&#39; of undefined at UserService.getUser
+2023-04-01 10:15:29.456 ERROR API rate limit exceeded for endpoint /api/users
+2023-04-01 10:16:00.789 CRITICAL Application crashed: Out of memory exception in worker thread
+&#34;&#34;&#34;,
+    &#34;database&#34;: &#34;&#34;&#34;
+2023-04-01 11:15:27.123 ERROR Failed to connect to database: Connection refused
+2023-04-01 11:15:29.456 CRITICAL Database deadlock detected in transaction #45982
+2023-04-01 11:16:00.789 ERROR Query performance degradation: Full table scan on users_table
+&#34;&#34;&#34;
+}
+
+# Define prompts for different analysis modes
+MODE_PROMPTS = {
+    &#34;security&#34;: &#34;You are a security analyst in a SOC (Security Operations Center). Review these logs from a security perspective. First provide a clear SUMMARY of what happened. Then under ATTACK PATTERNS, identify and explain potential security threats, unauthorized access attempts, suspicious activities, and attack vectors. Finally, under IMPACT ASSESSMENT, evaluate the potential impact and provide specific, actionable recommendations to improve security posture.&#34;,
+    
+    &#34;dev&#34;: &#34;You are a developer analyzing application logs. Review these logs from an application development perspective. First provide a clear SUMMARY of what happened. Then under ERROR ANALYSIS, identify software bugs, performance issues, error patterns, or application failures. Finally, under IMPACT ASSESSMENT, evaluate the impact on the application and provide specific, actionable recommendations to improve code quality and application reliability.&#34;,
+    
+    &#34;database&#34;: &#34;You are a database administrator. Review these logs from a database management perspective. First provide a clear SUMMARY of what happened. Then under PERFORMANCE ANALYSIS, identify database connectivity issues, query problems, or performance bottlenecks. Finally, under IMPACT ASSESSMENT, evaluate the impact on database operations and provide specific, actionable recommendations to improve database health and performance.&#34;
+}
+
+@functions_framework.http
+def logs_story(request):
+    &#34;&#34;&#34;HTTP Cloud Function that returns a Gemini-generated story based on logs.&#34;&#34;&#34;
+    # Parse request parameters
+    request_json = request.get_json(silent=True)
+    request_args = request.args
+    
+    # Get parameters with defaults
+    if request_json and &#39;timeframe&#39; in request_json:
+        timeframe = int(request_json[&#39;timeframe&#39;])
+    elif request_args and &#39;timeframe&#39; in request_args:
+        timeframe = int(request_args[&#39;timeframe&#39;])
+    else:
+        timeframe = 1  # Default to 1 hour
+    
+    if request_json and &#39;mode&#39; in request_json:
+        mode = request_json[&#39;mode&#39;].lower()
+    elif request_args and &#39;mode&#39; in request_args:
+        mode = request_args[&#39;mode&#39;].lower()
+    else:
+        mode = &#34;dev&#34;  # Default to dev mode
+    
+    if request_json and &#39;project_id&#39; in request_json:
+        project_id = request_json[&#39;project_id&#39;]
+    elif request_args and &#39;project_id&#39; in request_args:
+        project_id = request_args[&#39;project_id&#39;]
+    else:
+        project_id = None  # Default to current project
+    
+    # Check for chat parameter (specific question about logs)
+    if request_json and &#39;chat&#39; in request_json:
+        chat_query = request_json[&#39;chat&#39;]
+    elif request_args and &#39;chat&#39; in request_args:
+        chat_query = request_args[&#39;chat&#39;]
+    else:
+        chat_query = None  # No specific question asked
+    
+    # Validate mode
+    if mode not in MODE_PROMPTS:
+        return (f&#34;Error: Invalid mode. Available modes: {&#39;, &#39;.join(MODE_PROMPTS.keys())}&#34;, 400)
+    
+    # Initialize logging client with specific project if provided
+    try:
+        if project_id:
+            logging_client = logging.Client(project=project_id)
+        else:
+            logging_client = logging.Client()
+            
+        # Query logs from the past X hours with severity ERROR or higher
+        now = datetime.now(timezone.utc)
+        time_ago = now - timedelta(hours=timeframe)
+        time_iso = time_ago.isoformat()  # e.g. &#34;2023-04-01T08:30:00+00:00&#34;
+        
+        log_filter = f&#39;severity &gt;= ERROR AND timestamp &gt;= &#34;{time_iso}&#34;&#39;
+        
+        entries = logging_client.list_entries(filter_=log_filter)
+        
+        logs_text = &#34;&#34;
+        entry_count = 0
+        
+        for entry in entries:
+            entry_count += 1
+            # Format the log entry properly
+            if hasattr(entry, &#34;timestamp&#34;):
+                timestamp = entry.timestamp.isoformat()
+            else:
+                timestamp = &#34;Unknown time&#34;
+                
+            severity = entry.severity if hasattr(entry, &#34;severity&#34;) else &#34;ERROR&#34;
+            
+            if hasattr(entry, &#34;payload&#34;):
+                message = str(entry.payload)
+            else:
+                message = str(entry)
+            
+            logs_text += f&#34;{timestamp} {severity} {message}\n&#34;
+            
+            # Limit to reasonable number of entries to avoid excessive API costs
+            if entry_count &gt;= 50:
+                logs_text += &#34;... (additional logs truncated) ...\n&#34;
+                break
+                
+        # If no logs were collected, use the default sample logs
+        if not logs_text.strip():
+            logs_text = DEFAULT_LOGS.get(mode, DEFAULT_LOGS[&#34;dev&#34;])
+            logs_text = logs_text.strip()
+    
+    except Exception as e:
+        return (f&#34;Error querying logs: {str(e)}&#34;, 500)
+    
+    # Compose the prompt for Gemini based on the mode and whether this is a chat query
+    if chat_query:
+        # If a specific question was asked, use a chat prompt
+        prompt = f&#34;&#34;&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:
+
+{logs_text}
+
+A user has asked the following question about these logs:
+{chat_query}
+
+Please answer their question directly and specifically based on the log data. Provide as much relevant detail as possible from the logs to support your answer.&#34;&#34;&#34;
+    else:
+        # Otherwise use the standard analysis prompt
+        base_prompt = f&#34;You are analyzing system logs. The following logs cover a {timeframe} hour period:\n\n{logs_text}\n\n&#34;
+        mode_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS[&#34;dev&#34;])
+        
+        prompt = base_prompt + mode_prompt
+    
+    # Call the Gemini API
+    api_key = os.environ.get(&#34;GEMINI_API_KEY&#34;)
+    if not api_key:
+        return (&#34;Error: Gemini API key not set in environment variable GEMINI_API_KEY&#34;, 500)
+    
+    url = f&#34;https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}&#34;
+    headers = {&#34;Content-Type&#34;: &#34;application/json&#34;}
+    payload = {
+        &#34;contents&#34;: [
+            {
+                &#34;parts&#34;: [
+                    {&#34;text&#34;: prompt}
+                ]
+            }
+        ]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code != 200:
+            return (f&#34;Gemini API request failed with status {response.status_code}: {response.text}&#34;, 500)
+        
+        result = response.json()
+        output_text = result[&#34;candidates&#34;][0][&#34;content&#34;][&#34;parts&#34;][0][&#34;text&#34;]
+        
+        # Enhance the output with metadata
+        if chat_query:
+            output = f&#34;LOG ANALYSIS CHAT: {mode.upper()} MODE\n&#34;
+            output += f&#34;Time period: Past {timeframe} hour(s)\n&#34;
+            if project_id:
+                output += f&#34;Project: {project_id}\n&#34;
+            output += f&#34;Logs analyzed: {entry_count} entries\n&#34;
+            output += f&#34;Question: {chat_query}\n&#34;
+            output += &#34;-&#34; * 50 + &#34;\n\n&#34;
+            output += output_text
+        else:
+            output = f&#34;LOG ANALYSIS: {mode.upper()} MODE\n&#34;
+            output += f&#34;Time period: Past {timeframe} hour(s)\n&#34;
+            if project_id:
+                output += f&#34;Project: {project_id}\n&#34;
+            output += f&#34;Logs analyzed: {entry_count} entries\n&#34;
+            output += &#34;-&#34; * 50 + &#34;\n\n&#34;
+            output += output_text
+        
+        return (output, 200, {&#34;Content-Type&#34;: &#34;text/plain&#34;})
+    
+    except Exception as e:
+        return (f&#34;Error processing request: {str(e)}&#34;, 500)
+</code></pre>
+<p>Press Ctrl+X, You should see Save Modified Buffer Type Y Press enter</p>
+<p>If you type &#34;ls&#34; and enter</p>
+<p>This <code>main.py</code> file should be placed in your project directory alongside <code>requirements.txt</code> before deployment.</p>
 
 
       </google-codelab-step>
