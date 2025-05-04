@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Links with QR Codes</title>
+    <title>Build with AI 2025 Lagos Codelabs</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -13,6 +13,7 @@
         }
         .container {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             max-width: 1200px;
             margin: 0 auto;
@@ -22,9 +23,10 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             padding: 20px;
-            width: 30%;
+            width: 22%;
             text-align: center;
             transition: transform 0.3s;
+            margin-bottom: 20px;
         }
         .card:hover {
             transform: translateY(-5px);
@@ -80,7 +82,7 @@
 </head>
 <body>
     <header>
-        <h1>Project Codelabs</h1>
+        <h1>Build with AI 2025 Lagos Codelabs</h1>
     </header>
     
     <div class="container">
@@ -108,6 +110,15 @@
             <div id="qrcode3"></div>
             <a href="https://shorturl.at/GSrBo" target="_blank">
                 https://shorturl.at/GSrBo
+            </a>
+        </div>
+        
+        <!-- Firebase Studio 101 -->
+        <div class="card">
+            <h2><b>Firebase Studio 101</b></h2>
+            <div id="qrcode4"></div>
+            <a href="https://tinyurl.com/firebase-studio-101" target="_blank">
+                https://tinyurl.com/firebase-studio-101
             </a>
         </div>
     </div>
@@ -142,6 +153,16 @@
             // Travel Agent with SDK QR Code
             new QRCode(document.getElementById("qrcode3"), {
                 text: "https://shorturl.at/GSrBo",
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Firebase Studio 101 QR Code
+            new QRCode(document.getElementById("qrcode4"), {
+                text: "https://tinyurl.com/firebase-studio-101",
                 width: 200,
                 height: 200,
                 colorDark: "#000000",
